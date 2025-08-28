@@ -3,9 +3,16 @@ class Wowza::Api::OutputList < Wowza::Api::Base
     stream_format: 'audiovideo',
   }
 
+  attr_accessor :json
+
   def initialize(transcoder_id, outputs)
     @transcoder_id = transcoder_id
-    @outputs = outputs.map{|k| Wowza::Api::Output.new(transcoder_id, k)}
+    begin
+      @json = outputs.sort{|a,b| (a['aspect_ratio_height'] || 0) <=> (b['aspect_ratio_height'] || 0)}
+    rescue
+      @json = outputs
+    end
+    @outputs = @json.map{|k| Wowza::Api::Output.new(transcoder_id, k)}
   end
 
   def create(opts={})
@@ -57,5 +64,13 @@ class Wowza::Api::OutputList < Wowza::Api::Base
 
   def map(&block)
     @outputs.map{|o| yield o }
+  end
+
+  def select(&block)
+    @outputs.select{|o| yield o }
+  end
+
+  def find(&block)
+    @outputs.find{|o| yield o}
   end
 end

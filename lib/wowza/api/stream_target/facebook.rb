@@ -22,4 +22,10 @@ class Wowza::Api::StreamTarget::Facebook < Wowza::Api::StreamTarget::Base
       @data = response['stream_target_facebook']
     end
   end
+
+  def destroy
+    response = delete("/stream_targets/facebook/#{id}")
+    return true if response
+    return response
+  end
 end

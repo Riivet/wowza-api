@@ -65,6 +65,14 @@ class Wowza::Api::StreamTargetList < Wowza::Api::Base
     @targets.map{|o| yield o }
   end
 
+  def select(&block)
+    @targets.select{|o| yield o }
+  end
+
+  def find(&block)
+    @targets.find{|o| yield o}
+  end
+
   private
 
   def get_target(response)

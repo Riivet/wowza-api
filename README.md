@@ -26,8 +26,19 @@ Configure the api keys
 
 ```ruby
 Wowza::Api.configure do |config|
-  config.api_key = 'api-key'
-  config.access_key = 'access-key'
+  config.jwt = ENV['WOWZA_JWT']
+
+  # specify a logger to log requests and responses
+  config.logger = Logger.new('/path/to/file')
+
+  # logs the api path that matches the regex
+  config.logger_filter = /transcoder|stream_target/ 
+
+  # if you want to specify which verbs get logged for example:
+  # only PUT requests which match the regular expression:
+  config.logger_filter = {
+    put: /transcoder\/.*/ # logs any time a transcoder is updated
+  }
 end
 ```
 
@@ -45,3 +56,7 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 ## Contributing
 
 Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/wowza-api.
+
+Documentation:
+
+https://developer.wowza.com/docs/wowza-video/api/video/current/tag/transcoders/

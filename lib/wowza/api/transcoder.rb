@@ -59,7 +59,12 @@ class Wowza::Api::Transcoder < Wowza::Api::Base
   end
 
   def connection_url
-    "rtmp://#{domain_name}/#{application_name}"
+    case protocol
+    when 'rtmp'
+      "rtmp://#{domain_name}:#{source_port}/#{application_name}"
+    when 'srt'
+      "srt://#{domain_name}:#{source_port}"
+    end
   end
 
   # TODO
@@ -88,6 +93,11 @@ class Wowza::Api::Transcoder < Wowza::Api::Base
     response = delete("/transcoders/#{id}/properties/#{section}-#{key}")
   end
 
+  def get_property(section, key)
+    response = get("/transcoders/#{id}/properties/#{section}-#{key}")
+    return response['property']['value'] if response['property']
+  end
+
   def thumbnail
     response = get("/transcoders/#{id}/thumbnail_url")
     return response.dig('transcoder','thumbnail_url') if response.dig('transcoder')
@@ -108,6 +118,30 @@ class Wowza::Api::Transcoder < Wowza::Api::Base
     return response.dig('transcoder','state') if response.dig('transcoder')
   end
 
+  def uptimes
+    response = get("/transcoders/#{id}/uptimes")
+    return response.dig('uptimes')
+  end
+
+  def metrics(uptime_id)
+    response = get("/transcoders/#{id}/uptimes/#{uptime_id}/metrics/current")
+    return response.dig('current')
+  end
+
+  def output_target_status
+    uptime = uptimes.select{|k| k['running'] }.last
+    return Hash.new{|h,k| h[k] = {}} unless uptime
+    response = metrics(uptime['id'])
+    ret = Hash.new{|h,k| h[k] = {} }
+    response.each do |k,v|
+      if k =~ /stream_target_status/
+        _,_,_,output_id,target_id = k.split('_')
+        ret[target_id][output_id] = v['value']
+      end
+    end
+    return ret
+  end
+
   def stats
     response = get("/transcoders/#{id}/stats")
     ret = {}
@@ -126,6 +160,13 @@ class Wowza::Api::Transcoder < Wowza::Api::Base
     end
   end
 
+  def vod_streams
+    response = get("/transcoders/#{id}/vod_streams")
+    response['vod_streams'].map do |r|
+      Wowza::Api::VodStream.retrieve(r['id'])
+    end
+  end
+
   # Outputs
   def outputs
     @output_list || Wowza::Api::OutputList.new(id, @data['outputs'])
@@ -139,5 +180,11 @@ class Wowza::Api::Transcoder < Wowza::Api::Base
   end
 
   def delete_output
+  end
+
+  # reset targets
+  def reset_target(output_id, stream_target_id)
+    response = put("/transcoders/#{id}/outputs/#{output_id}/output_stream_targets/#{stream_target_id}/restart")
+    return response
   end
 end

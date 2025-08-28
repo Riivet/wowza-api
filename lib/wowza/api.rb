@@ -1,7 +1,9 @@
+require 'logger'
 require "wowza/api/version"
 require "wowza/api/base"
 require "wowza/api/transcoder"
 require "wowza/api/recording"
+require "wowza/api/vod_stream"
 require "wowza/api/stream_target/base"
 require "wowza/api/stream_target/akamai"
 require "wowza/api/stream_target/fastly"

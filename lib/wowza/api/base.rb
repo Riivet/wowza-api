@@ -2,7 +2,7 @@ require 'net/http'
 require 'json'
 
 class Wowza::Api::Base
-  API_BASE = 'https://api.cloud.wowza.com/api/v1.7'
+  API_BASE = 'https://api.cloud.wowza.com/api/v1.10'
 
   attr_reader :data
 
@@ -34,14 +34,21 @@ class Wowza::Api::Base
       raise "#{type} not found"
     end
 
-    request['wsc-api-key'] = Wowza::Api::configuration.api_key
-    request['wsc-access-key'] = Wowza::Api::configuration.access_key
+    # request['wsc-api-key'] = Wowza::Api::configuration.api_key
+    # request['wsc-access-key'] = Wowza::Api::configuration.access_key
+    request['Authorization'] = "Bearer: #{Wowza::Api::configuration.jwt}"
     request['Content-Type'] = 'application/json'
     body = body.is_a?(Hash) ? body.to_json : body.to_s
     request.body = body if body
 
     Net::HTTP.start(uri.host, uri.port, use_ssl: true) do |http|
       response = http.request(request)
+
+      uri_regex = Wowza::Api.configuration.logger_filter.is_a?(Hash) ? Wowza::Api.configuration.logger_filter[type] : Wowza::Api.configuration.logger_filter
+      if Wowza::Api.configuration.logger && (Wowza::Api.configuration.logger_filter.nil? || uri.path =~ uri_regex)
+        msg = "\n#{type.upcase} #{uri}\n----------------\n#{body}\n----------------\n#{response.code} #{response.body}\n----------------\n\n"
+        Wowza::Api.configuration.logger.debug(msg)
+      end
       result = JSON.parse(response.body) if response.body
       if response.code =~ /^2/
         return response.body ? result : true
@@ -65,7 +72,6 @@ class Wowza::Api::Base
   end
 
   def post(endpoint, body)
-    puts body.inspect
     self.class.request(:post, endpoint, body)
   end
 

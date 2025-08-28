@@ -12,4 +12,9 @@ class Wowza::Api::Recording < Wowza::Api::Base
       new(response['recording'])
     end
   end
+
+  def destroy
+    response = delete("/recordings/#{id}")
+    return true if response
+  end
 end
