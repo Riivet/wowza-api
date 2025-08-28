@@ -95,6 +95,7 @@ class Wowza::Api::Transcoder < Wowza::Api::Base
 
   def get_property(section, key)
     response = get("/transcoders/#{id}/properties/#{section}-#{key}")
+    return response['property']['value'] if response['property']
   end
 
   def thumbnail
