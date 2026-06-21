@@ -123,6 +123,21 @@ class Wowza::Api::Transcoder < Wowza::Api::Base
     return response.dig('uptimes')
   end
 
+  def start_recording
+    response = put("/transcoders/#{id}/start_recording")
+    return response.dig('transcoder','recording','state') if response.dig('transcoder')
+  end
+
+  def stop_recording
+    response = put("/transcoders/#{id}/stop_recording")
+    return response.dig('transcoder','recording','state') if response.dig('transcoder')
+  end
+
+  def recording_state
+    response = get("/transcoders/#{id}/recording_state")
+    return response.dig('transcoder','recording','state') if response.dig('transcoder')
+  end
+
   def metrics(uptime_id)
     response = get("/transcoders/#{id}/uptimes/#{uptime_id}/metrics/current")
     return response.dig('current')
