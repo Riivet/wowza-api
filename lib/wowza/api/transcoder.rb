@@ -175,7 +175,8 @@ class Wowza::Api::Transcoder < Wowza::Api::Base
     response['recordings'].filter_map do |r|
       begin
         Wowza::Api::Recording.retrieve(r['id'])
-      rescue Wowza::Api::Error
+      rescue Wowza::Api::Error => e
+        raise unless e.message&.include?('Recording status is not available')
         nil
       end
     end
