@@ -168,10 +168,16 @@ class Wowza::Api::Transcoder < Wowza::Api::Base
     end
   end
 
+  # One transcoder pools recordings across many events, so a single recording that
+  # Wowza reports as unavailable (still finalizing, purged, etc) must not blank the rest.
   def recordings
     response = get("/transcoders/#{id}/recordings")
-    response['recordings'].map do |r|
-      Wowza::Api::Recording.retrieve(r['id'])
+    response['recordings'].filter_map do |r|
+      begin
+        Wowza::Api::Recording.retrieve(r['id'])
+      rescue Wowza::Api::Error
+        nil
+      end
     end
   end
 
