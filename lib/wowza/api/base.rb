@@ -21,7 +21,7 @@ class Wowza::Api::Base
     uri = URI("#{API_BASE}#{endpoint}")
     request = case type
     when :get
-      Net::HTTP::Get.new uri.path
+      Net::HTTP::Get.new uri.request_uri
     when :post
        Net::HTTP::Post.new uri.path
     when :put
