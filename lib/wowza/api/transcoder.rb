@@ -118,9 +118,27 @@ class Wowza::Api::Transcoder < Wowza::Api::Base
     return response.dig('transcoder','state') if response.dig('transcoder')
   end
 
+  # All uptimes, oldest first. Wowza paginates this list (1000 per page).
   def uptimes
-    response = get("/transcoders/#{id}/uptimes")
-    return response.dig('uptimes')
+    response = uptimes_page(1)
+    ret = response['uptimes'] || []
+    (2..total_pages(response)).each do |page|
+      ret += uptimes_page(page)['uptimes'] || []
+    end
+    return ret
+  end
+
+  # The uptime currently running, or nil. Uptimes are listed oldest first, so
+  # on a long-lived transcoder the running one is on the last page; search
+  # from there back.
+  def running_uptime
+    first = uptimes_page(1)
+    total_pages(first).downto(1) do |page|
+      response = page == 1 ? first : uptimes_page(page)
+      running = (response['uptimes'] || []).select { |k| k['running'] }
+      return running.max_by { |k| k['started_at'].to_s } if running.any?
+    end
+    return nil
   end
 
   def start_recording
@@ -144,7 +162,7 @@ class Wowza::Api::Transcoder < Wowza::Api::Base
   end
 
   def output_target_status
-    uptime = uptimes.select{|k| k['running'] }.last
+    uptime = running_uptime
     return Hash.new{|h,k| h[k] = {}} unless uptime
     response = metrics(uptime['id'])
     ret = Hash.new{|h,k| h[k] = {} }
@@ -208,5 +226,15 @@ class Wowza::Api::Transcoder < Wowza::Api::Base
   def reset_target(output_id, stream_target_id)
     response = put("/transcoders/#{id}/outputs/#{output_id}/output_stream_targets/#{stream_target_id}/restart")
     return response
+  end
+
+  private
+
+  def uptimes_page(page)
+    get("/transcoders/#{id}/uptimes?page=#{page}")
+  end
+
+  def total_pages(response)
+    [response.dig('pagination', 'total_pages').to_i, 1].max
   end
 end
